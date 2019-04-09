@@ -16,21 +16,21 @@ import java.time.Duration
 import java.util.Properties
 
 fun main(args: Array<String>) {
-    FrOSConConsumer().consume()
+    REWEMeetupConsumer().consume()
 }
 
-class FrOSConConsumer {
+class REWEMeetupConsumer {
 
     companion object {
-        val log: Logger = LoggerFactory.getLogger(FrOSConConsumer::class.java.simpleName)
+        val log: Logger = LoggerFactory.getLogger(REWEMeetupConsumer::class.java.simpleName)
     }
 
     private fun config(): Properties {
         val config = Properties()
         config[BOOTSTRAP_SERVERS_CONFIG] = "127.0.0.1:9092"
         config[GROUP_ID_CONFIG] = "rewe-topic-group"
-        config[VALUE_DESERIALIZER_CLASS_CONFIG] = StringDeserializer::class.java.name
         config[KEY_DESERIALIZER_CLASS_CONFIG] = StringDeserializer::class.java.name
+        config[VALUE_DESERIALIZER_CLASS_CONFIG] = StringDeserializer::class.java.name
         config[MAX_POLL_INTERVAL_MS_CONFIG] = 10 * 60 * 1_000
         config[DEFAULT_API_TIMEOUT_MS_CONFIG] = 10 * 60 * 1_000
         config[SESSION_TIMEOUT_MS_CONFIG] = 60 * 1_000
