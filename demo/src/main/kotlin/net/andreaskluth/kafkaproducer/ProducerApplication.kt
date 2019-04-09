@@ -1,23 +1,28 @@
 package net.andreaskluth.kafkaproducer
 
 import org.apache.kafka.clients.producer.KafkaProducer
-import org.apache.kafka.clients.producer.ProducerConfig.*
+import org.apache.kafka.clients.producer.ProducerConfig.ACKS_CONFIG
+import org.apache.kafka.clients.producer.ProducerConfig.BOOTSTRAP_SERVERS_CONFIG
+import org.apache.kafka.clients.producer.ProducerConfig.CLIENT_ID_CONFIG
+import org.apache.kafka.clients.producer.ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG
+import org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG
+import org.apache.kafka.clients.producer.ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG
+import org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.lang.Exception
 import java.util.Properties
 
 fun main(args: Array<String>) {
-    REWEMeetupProducer().produce()
+    SimpleProducer().produce()
 }
 
-class REWEMeetupProducer {
+class SimpleProducer {
 
     companion object {
-        val log: Logger = LoggerFactory.getLogger(REWEMeetupProducer::class.java.simpleName)
+        val log: Logger = LoggerFactory.getLogger(SimpleProducer::class.java.simpleName)
     }
 
     private fun config(): Properties {
@@ -27,33 +32,37 @@ class REWEMeetupProducer {
         config[VALUE_SERIALIZER_CLASS_CONFIG] = StringSerializer::class.java.name
         config[REQUEST_TIMEOUT_MS_CONFIG] = 10_000
 
-        config[ENABLE_IDEMPOTENCE_CONFIG] = true
         config[ACKS_CONFIG] = "all"
+
+        config[ENABLE_IDEMPOTENCE_CONFIG] = true
+        config[CLIENT_ID_CONFIG] = "transactional-producer"
+        config["transactional.id"] = "demo"
+        config["transaction.state.log.replication.factor"] = 1 // <--- For testing set to 1!!
 
         return config
     }
 
     fun produce() {
-        Thread.sleep(10000)
         KafkaProducer<String, String>(config()).use { producer ->
+            producer.initTransactions()
             for (i in 1..1_000) {
+                producer.beginTransaction()
                 log.info("Sending: $i")
 
                 val record = ProducerRecord(
-                    "rewe-topic",
-                    i.toString(),
-                    "Hallo Kafka #" + i.toString())
+                        "rewe-topic",
+                        i.toString(),
+                        "Hallo Kafka #" + i.toString())
 
-                producer.send(record, logAsyncResponse(i))
-
+                producer.send(record, logAsyncResponse(producer, i))
+                producer.commitTransaction()
                 Thread.sleep(200)
             }
         }
     }
 
 
-
-    private fun logAsyncResponse(i: Int): (RecordMetadata?, Exception?) -> Unit {
+    private fun logAsyncResponse(producer: KafkaProducer<String, String>, i: Int): (RecordMetadata?, Exception?) -> Unit {
         return fun(metadata: RecordMetadata?, exception: Exception?) {
             exception?.run {
                 log.info("Skipping: $i due to ${exception.message}")
