@@ -16,13 +16,13 @@ import java.time.Duration
 import java.util.Properties
 
 fun main(args: Array<String>) {
-    REWEMeetupConsumer().consume()
+    SimpleConsumer().consume()
 }
 
-class REWEMeetupConsumer {
+class SimpleConsumer {
 
     companion object {
-        val log: Logger = LoggerFactory.getLogger(REWEMeetupConsumer::class.java.simpleName)
+        val log: Logger = LoggerFactory.getLogger(SimpleConsumer::class.java.simpleName)
     }
 
     private fun config(): Properties {
